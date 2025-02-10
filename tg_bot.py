@@ -1,6 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, CallbackContext
+
 import logging
+
+# Enable logging
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Dictionary to store user details
 user_data = {}
@@ -14,11 +19,10 @@ pdf_links = {
     "WordPress": ["https://yourserver.com/wpAssignment1.pdf"]
 }
 
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Welcome! Please enter your name:")
-    return
+async def start(update: Update, context: CallbackContext) -> None:
+    await update.message.reply_text("Welcome! Please enter your name:")
 
-def get_name(update: Update, context: CallbackContext) -> None:
+async def get_name(update: Update, context: CallbackContext) -> None:
     user_name = update.message.text
     user_id = update.message.chat_id
     user_data[user_id] = {"name": user_name}
@@ -29,16 +33,16 @@ def get_name(update: Update, context: CallbackContext) -> None:
         [InlineKeyboardButton("IMPs 🔥", callback_data='imps')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(f"Hello {user_name}, what do you need?", reply_markup=reply_markup)
+    await update.message.reply_text(f"Hello {user_name}, what do you need?", reply_markup=reply_markup)
 
-def button(update: Update, context: CallbackContext) -> None:
+async def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     if query.data in ["assignments", "practicals", "imps"]:
         keyboard = [[InlineKeyboardButton(subject, callback_data=subject)] for subject in pdf_links.keys()]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_text("Select a subject:", reply_markup=reply_markup)
+        await query.edit_message_text("Select a subject:", reply_markup=reply_markup)
     
     elif query.data in pdf_links:
         pdf_buttons = [
@@ -46,18 +50,18 @@ def button(update: Update, context: CallbackContext) -> None:
             for i, pdf in enumerate(pdf_links[query.data])
         ]
         reply_markup = InlineKeyboardMarkup(pdf_buttons)
-        query.edit_message_text(f"Here are the PDFs for {query.data}:", reply_markup=reply_markup)
+        await query.edit_message_text(f"Here are the PDFs for {query.data}:", reply_markup=reply_markup)
 
-def main():
-    updater = Updater("YOUR_BOT_TOKEN", use_context=True)
-    dp = updater.dispatcher
-    
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, get_name))
-    dp.add_handler(CallbackQueryHandler(button))
-    
-    updater.start_polling()
-    updater.idle()
+async def main():
+    app = Application.builder().token("8088841239:AAHgw4Zgyt8FOdpaFX7TJKLfaejN8IG2vi8").build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, get_name))
+    app.add_handler(CallbackQueryHandler(button))
+
+    logger.info("Bot is running...")
+    await app.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
